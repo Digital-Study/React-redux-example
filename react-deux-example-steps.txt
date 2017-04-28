@@ -1,0 +1,393 @@
+React with Redux – steps
+Step 1:mkdir react-redux-example
+Step 2 : cd react-redux-example
+Step 3:npm init
+Step 4: please provide the required details and click yes
+Step 5: npm install babel-register –save
+Step 6: npm install babel-polyfill –save
+Step 7: npm install babel-preset-es2015, babel-preset-stage-0, babel-preset-react  -- save one by one
+Step 8:npm install babel-plugin-transform-runtime
+Step 9: npm install babel-plugin-transform-class-properties
+Step 10:npm install webpack
+Step 11:npm install webpack-dev-server
+Step 12: npm install redux
+Step 13:npm install redux-react and npm install --save-dev redux-devtools
+Step 14: npm install lodash
+Step 15: create a webpack.config.js file and include the below code
+var path = require('path');
+var webpack = require('webpack');
+var ExtractTextPlugin = require('extract-text-webpack-plugin');
+var devFlagPlugin = new webpack.DefinePlugin({
+  __DEV__: JSON.stringify(JSON.parse(process.env.DEBUG || 'false'))
+});
+
+module.exports = {
+  devtool: 'eval',
+  entry: [
+    'webpack-dev-server/client?http://localhost:3000',
+    'webpack/hot/only-dev-server',
+    './src/index'
+  ],
+  output: {
+    path: path.join(__dirname, 'dist'),
+    filename: 'bundle.js',
+    publicPath: '/static/'
+  },
+  plugins: [
+    new webpack.HotModuleReplacementPlugin(),
+    new webpack.NoErrorsPlugin(),
+    devFlagPlugin,
+    new ExtractTextPlugin('app.css')
+  ],
+  module: {
+    loaders: [
+      {
+        test: /\.jsx?$/,
+        loaders: ['react-hot', 'babel'],
+        include: path.join(__dirname, 'src')
+      },
+      { test: /\.css$/, loader: ExtractTextPlugin.extract('css-loader?module!cssnext-loader') }
+    ]
+  },
+  resolve: {
+    extensions: ['', '.js', '.json']
+  }
+};
+
+Step 16: create a server.js file and include the below code
+var webpack = require('webpack');
+var WebpackDevServer = require('webpack-dev-server');
+var config = require('./webpack.config');
+
+new WebpackDevServer(webpack(config), {
+  publicPath: config.output.publicPath,
+  hot: true,
+  historyApiFallback: true
+}).listen(3000, 'localhost', function (err, result) {
+  if (err) {
+    console.log(err);
+  }
+
+  console.log('Listening at localhost:3000');
+});	
+Step 17: src\index.js is the entry point of the application
+Step 18: src\actions\FriendsActions.js
+import * as types from '../constants/ActionTypes';
+
+export function addFriend(name) {
+  return {
+    type: types.ADD_FRIEND,
+    name
+  };
+}
+
+export function deleteFriend(id) {
+  return {
+    type: types.DELETE_FRIEND,
+    id
+  };
+}
+
+export function starFriend(id) {
+  return {
+    type: types.STAR_FRIEND,
+    id
+  };
+}
+Step 19:src\components\ AddFriendInput.js
+import React, { Component, PropTypes } from 'react';
+import classnames from 'classnames';
+import styles from './AddFriendInput.css';
+
+export default class AddFriendInput extends Component {
+  static propTypes = {
+    addFriend: PropTypes.func.isRequired
+  }
+
+  render () {
+    return (
+      <input
+        type="text"
+        autoFocus="true"
+        className={classnames('form-control', styles.addFriendInput)}
+        placeholder="Type the name of a friend"
+        value={this.state.name}
+        onChange={this.handleChange.bind(this)}
+        onKeyDown={this.handleSubmit.bind(this)} />
+    );
+  }
+
+  constructor (props, context) {
+    super(props, context);
+    this.state = {
+      name: this.props.name || '',
+    };
+  }
+
+  handleChange (e) {
+    this.setState({ name: e.target.value });
+  }
+
+  handleSubmit (e) {
+    const name = e.target.value.trim();
+    if (e.which === 13) {
+      this.props.addFriend(name);
+      this.setState({ name: '' });
+    }
+  }
+
+}
+Step 20: src\components\ FriendList.js
+import React, { Component, PropTypes } from 'react';
+import mapValues from 'lodash/object/mapValues';
+
+import styles from './FriendList.css';
+import FriendListItem from './FriendListItem';
+
+export default class FriendList extends Component {
+  static propTypes = {
+    friends: PropTypes.object.isRequired,
+    actions: PropTypes.object.isRequired
+  }
+
+  render () {
+    return (
+      <ul className={styles.friendList}>
+        {
+          mapValues(this.props.friends, (friend) => {
+            return (<FriendListItem
+              key={friend.id}
+              id={friend.id}
+              name={friend.name}
+              starred={friend.starred}
+              {...this.props.actions} />);
+          })
+        }
+      </ul>
+    );
+  }
+
+}
+Step 21 : src\components\ FriendListItem.js
+import React, { Component, PropTypes } from 'react';
+import classnames from 'classnames';
+import styles from './FriendListItem.css';
+
+export default class FriendListItem extends Component {
+  static propTypes = {
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+    starred: PropTypes.boolean,
+    starFriend: PropTypes.func.isRequired,
+    onTrashClick: PropTypes.func.isRequired
+  }
+
+  render () {
+    return (
+      <li className={styles.friendListItem}>
+        <div className={styles.friendInfos}>
+          <div><span>{this.props.name}</span></div>
+          <div><small>xx friends in common</small></div>
+        </div>
+        <div className={styles.friendActions}>
+          <button className={`btn btn-default ${styles.btnAction}`} onClick={() => this.props.starFriend(this.props.id)}>
+            <i className={classnames('fa', { 'fa-star': this.props.starred }, { 'fa-star-o': !this.props.starred })} />
+          </button>
+          <button className={`btn btn-default ${styles.btnAction}`} onClick={() => this.props.deleteFriend(this.props.id)}>
+            <i className="fa fa-trash" />
+          </button>
+        </div>
+      </li>
+    );
+  }
+
+}
+Step 22: src\components\index.js
+export { default as AddFriendInput } from './AddFriendInput';
+export { default as FriendList } from './FriendList';
+export { default as FriendListItem } from './FriendListItem';
+step 23:src\constants\ ActionTypes.js
+export const ADD_FRIEND = 'ADD_FRIEND';
+export const STAR_FRIEND = 'STAR_FRIEND';
+export const DELETE_FRIEND = 'DELETE_FRIEND';
+step 24: src\containers\App.js
+import React, { Component } from 'react';
+import { combineReducers } from 'redux';
+import { Provider } from 'react-redux';
+
+import { createStore, renderDevTools } from '../store_enhancers/devTools';
+
+import FriendListApp from './FriendListApp';
+import * as reducers from '../reducers';
+
+const reducer = combineReducers(reducers);
+const store = createStore(reducer);
+
+export default class App extends Component {
+  render() {
+    return (
+      <div>
+        <Provider store={store}>
+          {() => <FriendListApp /> }
+        </Provider>
+
+        {renderDevTools(store)}
+      </div>
+    );
+  }
+}
+Step 25:src\containers\FriendListApp.js
+import React, { Component, PropTypes } from 'react';
+import styles from './FriendListApp.css';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+
+import * as FriendsActions from '../actions/FriendsActions';
+import { FriendList, AddFriendInput } from '../components';
+
+@connect(state => ({
+  friendlist: state.friendlist
+}))
+export default class FriendListApp extends Component {
+
+  static propTypes = {
+    friendsById: PropTypes.object.isRequired,
+    dispatch: PropTypes.func.isRequired
+  }
+
+  render () {
+    const { friendlist: { friendsById }, dispatch } = this.props;
+    const actions = bindActionCreators(FriendsActions, dispatch);
+
+    return (
+      <div className={styles.friendListApp}>
+        <h1>The FriendList</h1>
+        <AddFriendInput addFriend={actions.addFriend} />
+        <FriendList friends={friendsById} actions={actions} />
+      </div>
+    );
+  }
+}
+Step 26:src\reducers\friendlist.js
+import * as types from '../constants/ActionTypes';
+import omit from 'lodash/object/omit';
+import assign from 'lodash/object/assign';
+import mapValues from 'lodash/object/mapValues';
+
+const initialState = {
+  friends: [1, 2, 3],
+  friendsById: {
+    1: {
+      id: 1,
+      name: 'Theodore Roosevelt'
+    },
+    2: {
+      id: 2,
+      name: 'Abraham Lincoln'
+    },
+    3: {
+      id: 3,
+      name: 'George Washington'
+    }
+  }
+};
+
+export default function friends(state = initialState, action) {
+  switch (action.type) {
+
+    case types.ADD_FRIEND:
+      const newId = state.friends[state.friends.length-1] + 1;
+      return {
+        ...state,
+        friends: state.friends.concat(newId),
+        friendsById: {
+          ...state.friendsById,
+          [newId]: {
+            id: newId,
+            name: action.name
+          }
+        },
+      }
+
+    case types.DELETE_FRIEND:
+      return {
+        ...state,
+        friends: state.friends.filter(id => id !== action.id),
+        friendsById: omit(state.friendsById, action.id)
+      }
+
+    case types.STAR_FRIEND:
+      return {
+        ...state,
+        friendsById: mapValues(state.friendsById, (friend) => {
+          return friend.id === action.id ?
+            assign({}, friend, { starred: !friend.starred }) :
+            friend
+        })
+      }
+
+    default:
+      return state;
+  }
+}
+Step 27:src\reducers\indes.js
+export { default as friendlist } from './friendlist';
+step 28:src\index.js
+import React from 'react';
+import App from './containers/App';
+
+React.render(<App />, document.getElementById('root'));
+Step 29:index.html
+<html>
+  <head>
+    <title></title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <link href="./static/app.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div id='root'>
+    </div>
+    <script src="/static/bundle.js"></script>
+  </body>
+</html>
+Step 30: package.json
+{
+  "name": "react-reduc-example",
+  "version": "1.0.0",
+  "description": "Redux example",
+  "scripts": {
+    "start": "node server.js",
+    "lint": "eslint src"
+  },
+   "keywords": [
+     ],
+  "author": "",
+  "license": "",
+  "devDependencies": {
+    "babel-core": "^5.8.3",
+    "babel-eslint": "^4.0.5",
+    "babel-loader": "^5.3.2",
+    "css-loader": "^0.15.6",
+    "cssnext-loader": "^1.0.1",
+    "eslint": "^0.24.1",
+    "eslint-plugin-react": "^3.1.0",
+    "extract-text-webpack-plugin": "^0.8.2",
+    "html-webpack-plugin": "^1.6.1",
+    "react-hot-loader": "^1.2.7",
+    "redux-devtools": "^1.0.2",
+    "style-loader": "^0.12.3",
+    "webpack": "^1.9.6",
+    "webpack-dev-server": "^1.8.2"
+  },
+  "dependencies": {
+    "classnames": "^2.1.3",
+    "lodash": "^3.10.1",
+    "react": "^0.13.0",
+    "react-redux": "^0.2.2",
+    "redux": "^1.0.0-rc"
+  }
+}
+
+
+
